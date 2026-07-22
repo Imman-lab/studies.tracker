@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Timer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3348;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --break-col: #00c9a7;
+    --text: #e8eaf0;
+    --muted: #7a7f9a;
+    --success: #4ade80;
+    --warning: #fbbf24;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .tab {
+    padding: 16px 28px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    transition: all .2s;
+    user-select: none;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  .page { display: none; padding: 32px 24px; max-width: 780px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* ── SETUP ── */
+  h1 { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+  .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .subject-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+
+  .subject-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    transition: border-color .2s;
+  }
+  .subject-row:focus-within { border-color: var(--accent); }
+
+  .drag-handle { color: var(--muted); cursor: grab; font-size: 16px; padding: 0 4px; }
+
+  .subject-check {
+    width: 18px; height: 18px; flex-shrink: 0;
+    accent-color: var(--accent); cursor: pointer;
+  }
+  .subject-row.inactive { opacity: .45; }
+  .subject-row.inactive input[type="text"] { text-decoration: line-through; }
+
+  .only-btn {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    font-size: 11px; font-weight: 600; padding: 4px 9px; border-radius: 20px;
+    cursor: pointer; white-space: nowrap; transition: all .15s;
+  }
+  .only-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .subject-row input[type="text"] {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+  }
+  .subject-row input[type="text"]::placeholder { color: var(--muted); }
+
+  .duration-ctrl {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .duration-ctrl button {
+    background: var(--surface2);
+    border: none; border-radius: 6px;
+    color: var(--text);
+    width: 26px; height: 26px;
+    cursor: pointer; font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+  }
+  .duration-ctrl button:hover { background: var(--accent); }
+  .duration-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px; width: 42px; text-align: center;
+    color: var(--accent);
+  }
+
+  .badge {
+    font-size: 10px; font-weight: 700; letter-spacing: .05em;
+    text-transform: uppercase; padding: 3px 8px; border-radius: 20px;
+    white-space: nowrap;
+  }
+  .badge-core { background: rgba(108,99,255,.15); color: var(--accent); }
+  .badge-optional { background: rgba(255,101,132,.15); color: var(--accent2); }
+
+  .remove-btn {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 18px; line-height: 1;
+    transition: color .15s;
+  }
+  .remove-btn:hover { color: var(--accent2); }
+
+  .row { display: flex; gap: 12px; align-items: center; margin-bottom: 24px; flex-wrap: wrap; }
+
+  .btn {
+    padding: 11px 22px; border-radius: 9px; border: none;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-ghost {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-primary {
+    background: var(--accent); color: #fff;
+  }
+  .btn-primary:hover { background: #5a52e0; }
+  .btn-danger { background: rgba(255,101,132,.12); color: var(--accent2); border: 1px solid rgba(255,101,132,.3); }
+  .btn-danger:hover { background: rgba(255,101,132,.2); }
+
+  .break-setting {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px; margin-bottom: 32px;
+  }
+  .break-icon { font-size: 22px; }
+  .break-setting label { color: var(--muted); font-size: 14px; flex: 1; }
+  .break-setting input[type=range] {
+    width: 120px; accent-color: var(--break-col);
+  }
+  .break-val {
+    font-family: 'Space Mono', monospace;
+    color: var(--break-col); font-size: 14px; width: 48px; text-align: right;
+  }
+
+  /* ── TIMER ── */
+  .timer-header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .session-date {
+    font-size: 12px; color: var(--muted); letter-spacing: .08em;
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+  .session-title {
+    font-size: 22px; font-weight: 700;
+  }
+
+  .progress-track {
+    display: flex; gap: 5px; margin-bottom: 28px;
+  }
+  .progress-seg {
+    flex: 1; height: 5px; border-radius: 3px;
+    background: var(--surface2);
+    transition: background .3s;
+  }
+  .progress-seg.done { background: var(--accent); }
+  .progress-seg.break-done { background: var(--break-col); }
+  .progress-seg.current { background: var(--warning); animation: pulse 1.5s infinite; }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: .5; }
+  }
+
+  .current-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 28px;
+    text-align: center;
+    margin-bottom: 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .current-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at top, rgba(108,99,255,.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .current-card.is-break::before {
+    background: radial-gradient(ellipse at top, rgba(0,201,167,.07) 0%, transparent 70%);
+  }
+
+  .block-label {
+    font-size: 11px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; margin-bottom: 10px;
+  }
+  .block-label.subject-lbl { color: var(--accent); }
+  .block-label.break-lbl { color: var(--break-col); }
+
+  .block-name {
+    font-size: 28px; font-weight: 700; margin-bottom: 22px;
+  }
+
+  .clock {
+    font-family: 'Space Mono', monospace;
+    font-size: 64px; font-weight: 700;
+    letter-spacing: -.02em;
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+  .clock.subject-clock { color: var(--accent); }
+  .clock.break-clock { color: var(--break-col); }
+  .clock.warning-clock { color: var(--warning); }
+
+  .progress-bar-wrap {
+    height: 6px; background: var(--surface2); border-radius: 3px;
+    margin-bottom: 28px; overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%; border-radius: 3px;
+    transition: width .5s linear;
+  }
+  .subject-fill { background: var(--accent); }
+  .break-fill { background: var(--break-col); }
+
+  .time-adjust-row { display: flex; gap: 10px; justify-content: center; }
+  .time-adjust-btn {
+    background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+    padding: 8px 18px; font-size: 13px;
+  }
+  .time-adjust-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .timer-controls { display: flex; gap: 12px; justify-content: center; margin-bottom: 28px; flex-wrap: wrap; }
+
+  .ctrl-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 24px; border-radius: 10px; border: none;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px; font-weight: 600; cursor: pointer;
+    transition: all .15s;
+  }
+  .ctrl-start { background: var(--accent); color: #fff; }
+  .ctrl-start:hover { background: #5a52e0; }
+  .ctrl-pause { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .ctrl-pause:hover { border-color: var(--warning); color: var(--warning); }
+  .ctrl-skip { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+  .ctrl-skip:hover { border-color: var(--accent2); color: var(--accent2); }
+  .ctrl-stop { background: rgba(255,101,132,.1); color: var(--accent2); border: 1px solid rgba(255,101,132,.3); }
+  .ctrl-stop:hover { background: rgba(255,101,132,.2); }
+
+  .queue-list { display: flex; flex-direction: column; gap: 8px; }
+  .queue-item {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 16px;
+    opacity: .5; transition: opacity .2s;
+  }
+  .queue-item.upcoming { opacity: 1; }
+  .queue-item.completed { opacity: .3; }
+  .queue-item-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-subject { background: var(--accent); }
+  .dot-break { background: var(--break-col); }
+  .dot-done { background: var(--muted); }
+  .queue-item-name { flex: 1; font-size: 14px; }
+  .queue-item-dur { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--muted); }
+
+  /* ── DONE BANNER ── */
+  .done-banner {
+    display: none;
+    background: linear-gradient(135deg, rgba(108,99,255,.15), rgba(0,201,167,.1));
+    border: 1px solid var(--accent);
+    border-radius: 16px;
+    padding: 32px;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .done-banner.show { display: block; }
+  .done-banner h2 { font-size: 28px; margin-bottom: 8px; }
+  .done-banner p { color: var(--muted); font-size: 14px; }
+
+  /* ── REPORT ── */
+  .report-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 28px; flex-wrap: wrap; gap: 12px;
+  }
+  .report-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px; margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px 16px;
+  }
+  .stat-card .val {
+    font-family: 'Space Mono', monospace;
+    font-size: 26px; font-weight: 700; color: var(--accent);
+    line-height: 1; margin-bottom: 6px;
+  }
+  .stat-card .lbl { font-size: 12px; color: var(--muted); }
+
+  .session-cards { display: flex; flex-direction: column; gap: 16px; }
+  .session-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+  }
+  .session-card-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    transition: background .15s;
+  }
+  .session-card-header:hover { background: var(--surface2); }
+  .session-card-date { font-size: 14px; font-weight: 600; }
+  .session-card-summary { font-size: 12px; color: var(--muted); display: flex; gap: 14px; }
+  .session-detail { display: none; padding: 16px 18px; }
+  .session-detail.open { display: block; }
+
+  .subject-bar-wrap { margin-bottom: 12px; }
+  .subject-bar-label {
+    display: flex; justify-content: space-between;
+    font-size: 13px; margin-bottom: 5px;
+  }
+  .subject-bar-label .sname { font-weight: 500; }
+  .subject-bar-label .stime { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--muted); }
+  .subject-bar-bg {
+    height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden;
+  }
+  .subject-bar-fill {
+    height: 100%; border-radius: 4px;
+    background: linear-gradient(90deg, var(--accent), #a084ff);
+  }
+
+  .heatmap-section { margin-bottom: 28px; }
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-top: 12px;
+  }
+  .hm-cell {
+    aspect-ratio: 1;
+    border-radius: 4px;
+    background: var(--surface2);
+    position: relative;
+    cursor: default;
+    transition: transform .1s;
+  }
+  .hm-cell:hover { transform: scale(1.15); }
+  .hm-cell[title]:hover::after {
+    content: attr(title);
+    position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%);
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 4px 8px; border-radius: 6px; font-size: 11px; white-space: nowrap;
+    pointer-events: none; z-index: 10;
+  }
+
+  /* empty state */
+  .empty-state {
+    text-align: center; padding: 60px 20px; color: var(--muted);
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 15px; }
+
+  /* modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.7); z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px; width: 90%; max-width: 420px;
+  }
+  .modal h3 { font-size: 18px; margin-bottom: 8px; }
+  .modal p { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media(max-width:480px) {
+    .tabs { overflow-x: auto; }
+    .clock { font-size: 48px; }
+    .stat-grid { grid-template-columns: repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+
+<nav class="tabs">
+  <div class="tab active" onclick="switchTab('setup')">⚙️ Setup</div>
+  <div class="tab" onclick="switchTab('timer')" id="tab-timer">▶ Timer</div>
+  <div class="tab" onclick="switchTab('report')">📊 Reports</div>
+</nav>
+
+<!-- ══════════════ SETUP PAGE ══════════════ -->
+<div class="page active" id="page-setup">
+  <h1>Study Timer</h1>
+  <p class="subtitle">Commerce stream study planner — set your subjects, then start your session.</p>
+  <p class="subtitle" style="margin-top:-24px;margin-bottom:28px">
+    Uncheck a subject to skip it today, or tap <strong>Only</strong> to study just that one.
+    <a href="#" onclick="selectAllSubjects();return false;" style="color:var(--accent);text-decoration:none;font-weight:600">Reset — include all</a>
+  </p>
+
+  <div class="section-label">Daily Subjects (Core)</div>
+  <div class="subject-list" id="core-list"></div>
+  <div class="row">
+    <button class="btn btn-ghost" onclick="addSubject('core')">+ Add Core Subject</button>
+  </div>
+
+  <div class="section-label">Optional Subjects</div>
+  <div class="subject-list" id="opt-list"></div>
+  <div class="row">
+    <button class="btn btn-ghost" onclick="addSubject('opt')">+ Add Optional Subject</button>
+  </div>
+
+  <div class="break-setting">
+    <span class="break-icon">☕</span>
+    <label>Break between subjects</label>
+    <input type="range" min="1" max="30" value="10" id="break-slider"
+           oninput="document.getElementById('break-display').textContent=this.value+'m'">
+    <span class="break-val" id="break-display">10m</span>
+  </div>
+
+  <button class="btn btn-primary" style="width:100%;padding:14px;font-size:16px" onclick="startSession()">
+    ▶ &nbsp; Start Today's Session
+  </button>
+</div>
+
+<!-- ══════════════ TIMER PAGE ══════════════ -->
+<div class="page" id="page-timer">
+  <div class="timer-header">
+    <div class="session-date" id="timer-date"></div>
+    <div class="session-title" id="timer-session-name">Study Session</div>
+  </div>
+
+  <div class="progress-track" id="progress-track"></div>
+
+  <div class="done-banner" id="done-banner">
+    <h2>🎉 Session Complete!</h2>
+    <p id="done-summary"></p>
+  </div>
+
+  <div id="timer-active">
+    <div class="current-card" id="current-card">
+      <div class="block-label subject-lbl" id="block-label">SUBJECT</div>
+      <div class="block-name" id="block-name">—</div>
+      <div class="clock subject-clock" id="clock">00:00</div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill subject-fill" id="bar-fill" style="width:0%"></div>
+      </div>
+      <div class="time-adjust-row">
+        <button class="ctrl-btn time-adjust-btn" onclick="adjustTime(-5)">−5m</button>
+        <button class="ctrl-btn time-adjust-btn" onclick="adjustTime(5)">+5m</button>
+      </div>
+    </div>
+
+    <div class="timer-controls">
+      <button class="ctrl-btn ctrl-start" id="btn-startp" onclick="togglePause()">▶ Start</button>
+      <button class="ctrl-btn ctrl-skip" onclick="skipBlock()">⏭ Skip</button>
+      <button class="ctrl-btn ctrl-stop" onclick="confirmStop()">■ End Session</button>
+    </div>
+  </div>
+
+  <div class="section-label" style="margin-top:24px">Queue</div>
+  <div class="queue-list" id="queue-list"></div>
+</div>
+
+<!-- ══════════════ REPORT PAGE ══════════════ -->
+<div class="page" id="page-report">
+  <div class="report-header">
+    <div>
+      <h1>Reports</h1>
+      <p class="subtitle" style="margin-bottom:0">All sessions stored on your device</p>
+    </div>
+    <div class="report-actions">
+      <button class="btn btn-ghost" onclick="exportCSV()">⬇ Export CSV</button>
+      <button class="btn btn-danger" onclick="confirmClear()">🗑 Clear All</button>
+    </div>
+  </div>
+
+  <div class="stat-grid" id="summary-stats"></div>
+
+  <div class="heatmap-section">
+    <div class="section-label">Last 4 Weeks Activity</div>
+    <div class="heatmap-grid" id="heatmap"></div>
+  </div>
+
+  <div class="section-label">Sessions</div>
+  <div class="session-cards" id="session-cards"></div>
+</div>
+
+<!-- ══════════════ MODALS ══════════════ -->
+<div class="modal-overlay" id="stop-modal">
+  <div class="modal">
+    <h3>End session early?</h3>
+    <p>Progress so far will be saved to your report.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('stop-modal')">Continue</button>
+      <button class="btn btn-danger" onclick="stopSession()">End Session</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="clear-modal">
+  <div class="modal">
+    <h3>Clear all data?</h3>
+    <p>This will permanently delete all your session history. This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('clear-modal')">Cancel</button>
+      <button class="btn btn-danger" onclick="clearAll()">Delete Everything</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════
+const STORAGE_KEY = 'studytimer_v1';
+
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultState();
+    // migrate: older saves may not have an 'active' flag on subjects
+    ['core','opt'].forEach(type => {
+      (s.subjects[type] || []).forEach(sub => {
+        if (typeof sub.active === 'undefined') sub.active = true;
+      });
+    });
+    return s;
+  }
+  catch { return defaultState(); }
+}
+function save(state) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+function defaultState() {
+  return {
+    subjects: {
+      core: [
+        { name: 'Commerce', mins: 45, active: true },
+        { name: 'Business Maths', mins: 45, active: true },
+        { name: 'Accountancy', mins: 45, active: true },
+        { name: 'Economics', mins: 45, active: true }
+      ],
+      opt: [
+        { name: 'Tamil', mins: 30, active: true },
+        { name: 'English', mins: 30, active: true }
+      ]
+    },
+    breakMins: 10,
+    sessions: []
+  };
+}
+
+let state = load();
+let timerInterval = null;
+let session = null; // active session object
+
+// ══════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const idx = ['setup','timer','report'].indexOf(id);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+  document.getElementById('page-'+id).classList.add('active');
+  if (id === 'report') renderReport();
+}
+
+// ══════════════════════════════════════
+//  SETUP
+// ══════════════════════════════════════
+function renderSetup() {
+  renderSubjectList('core');
+  renderSubjectList('opt');
+  document.getElementById('break-slider').value = state.breakMins;
+  document.getElementById('break-display').textContent = state.breakMins + 'm';
+}
+
+function renderSubjectList(type) {
+  const el = document.getElementById(type === 'core' ? 'core-list' : 'opt-list');
+  el.innerHTML = '';
+  state.subjects[type].forEach((s, i) => {
+    const row = document.createElement('div');
+    row.className = 'subject-row' + (s.active === false ? ' inactive' : '');
+    row.innerHTML = `
+      <input type="checkbox" class="subject-check" ${s.active === false ? '' : 'checked'}
+             title="Include in today's session"
+             onchange="toggleSubjectActive('${type}',${i},this.checked)">
+      <input type="text" value="${s.name}" placeholder="Subject name"
+             onchange="updateSubject('${type}',${i},'name',this.value)">
+      <span class="badge ${type==='core'?'badge-core':'badge-optional'}">${type==='core'?'Core':'Optional'}</span>
+      <button class="only-btn" onclick="onlySubject('${type}',${i})">Only</button>
+      <div class="duration-ctrl">
+        <button onclick="changeMins('${type}',${i},-5)">−</button>
+        <span class="duration-val">${s.mins}m</span>
+        <button onclick="changeMins('${type}',${i},5)">+</button>
+      </div>
+      <button class="remove-btn" onclick="removeSubject('${type}',${i})">×</button>
+    `;
+    el.appendChild(row);
+  });
+}
+
+function toggleSubjectActive(type, i, checked) {
+  state.subjects[type][i].active = checked;
+  save(state);
+  renderSubjectList(type);
+}
+
+function onlySubject(type, i) {
+  // Mark every subject inactive, then activate only the chosen one.
+  ['core','opt'].forEach(t => {
+    state.subjects[t].forEach((s, j) => {
+      s.active = (t === type && j === i);
+    });
+  });
+  save(state);
+  renderSubjectList('core');
+  renderSubjectList('opt');
+}
+
+function selectAllSubjects() {
+  ['core','opt'].forEach(t => {
+    state.subjects[t].forEach(s => { s.active = true; });
+  });
+  save(state);
+  renderSubjectList('core');
+  renderSubjectList('opt');
+}
+
+function addSubject(type) {
+  state.subjects[type].push({ name: '', mins: type==='core'?45:30, active: true });
+  save(state);
+  renderSubjectList(type);
+  // focus last input
+  const inputs = document.querySelectorAll(`#${type==='core'?'core':'opt'}-list input`);
+  if (inputs.length) inputs[inputs.length-1].focus();
+}
+
+function removeSubject(type, i) {
+  state.subjects[type].splice(i, 1);
+  save(state);
+  renderSubjectList(type);
+}
+
+function updateSubject(type, i, key, val) {
+  state.subjects[type][i][key] = val;
+  save(state);
+}
+
+function changeMins(type, i, delta) {
+  let v = state.subjects[type][i].mins + delta;
+  if (v < 5) v = 5;
+  if (v > 180) v = 180;
+  state.subjects[type][i].mins = v;
+  save(state);
+  renderSubjectList(type);
+}
+
+document.getElementById('break-slider').addEventListener('input', function() {
+  state.breakMins = parseInt(this.value);
+  save(state);
+});
+
+// ══════════════════════════════════════
+//  BUILD BLOCK QUEUE
+// ══════════════════════════════════════
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function buildQueue() {
+  // Show which optional subjects are active (all by default if they exist)
+  const allSubjects = [
+    ...state.subjects.core,
+    ...state.subjects.opt
+  ].filter(s => s.name.trim() && s.active !== false);
+
+  // Tamil & English always go last; everything else is shuffled daily
+  const isLastGroup = s => /tamil|english/i.test(s.name);
+  const mainSubjects = shuffle(allSubjects.filter(s => !isLastGroup(s)));
+  const lastSubjects = shuffle(allSubjects.filter(s => isLastGroup(s)));
+  const subjects = [...mainSubjects, ...lastSubjects];
+
+  const blocks = [];
+  subjects.forEach((s, i) => {
+    blocks.push({ type: 'subject', name: s.name, totalSecs: s.mins * 60 });
+    if (i < subjects.length - 1) {
+      blocks.push({ type: 'break', name: 'Break', totalSecs: state.breakMins * 60 });
+    }
+  });
+  return blocks;
+}
+
+// ══════════════════════════════════════
+//  SESSION START
+// ══════════════════════════════════════
+function startSession() {
+  // validate
+  const allSubjects = [...state.subjects.core, ...state.subjects.opt].filter(s => s.name.trim() && s.active !== false);
+  if (allSubjects.length === 0) {
+    alert('Please add and check at least one subject to study today.');
+    return;
+  }
+
+  const blocks = buildQueue();
+  const now = new Date();
+
+  session = {
+    id: Date.now(),
+    date: now.toISOString(),
+    blocks: blocks.map(b => ({
+      ...b,
+      elapsed: 0,
+      status: 'pending' // pending | active | done | skipped
+    })),
+    currentIdx: 0,
+    paused: true,
+    started: false,
+    ended: false
+  };
+
+  renderTimerUI();
+  switchTab('timer');
+}
+
+// ══════════════════════════════════════
+//  TIMER UI
+// ══════════════════════════════════════
+function renderTimerUI() {
+  if (!session) return;
+  const now = new Date(session.date);
+  document.getElementById('timer-date').textContent =
+    now.toLocaleDateString(undefined, { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  renderProgressTrack();
+  renderQueue();
+  renderCurrentBlock();
+  document.getElementById('done-banner').classList.remove('show');
+  document.getElementById('timer-active').style.display = '';
+}
+
+function renderProgressTrack() {
+  const track = document.getElementById('progress-track');
+  track.innerHTML = '';
+  session.blocks.forEach((b, i) => {
+    const seg = document.createElement('div');
+    seg.className = 'progress-seg';
+    if (b.status === 'done' || b.status === 'skipped') {
+      seg.classList.add(b.type === 'break' ? 'break-done' : 'done');
+    } else if (i === session.currentIdx) {
+      seg.classList.add('current');
+    }
+    track.appendChild(seg);
+  });
+}
+
+function renderQueue() {
+  const list = document.getElementById('queue-list');
+  list.innerHTML = '';
+  session.blocks.forEach((b, i) => {
+    const item = document.createElement('div');
+    const isUpcoming = i >= session.currentIdx;
+    const isDone = b.status === 'done' || b.status === 'skipped';
+    item.className = 'queue-item ' + (isDone ? 'completed' : isUpcoming ? 'upcoming' : '');
+    const dotCls = isDone ? 'dot-done' : b.type === 'break' ? 'dot-break' : 'dot-subject';
+    item.innerHTML = `
+      <div class="queue-item-dot ${dotCls}"></div>
+      <div class="queue-item-name">${b.name}${b.status==='skipped'?' (skipped)':''}</div>
+      <div class="queue-item-dur">${fmtMins(b.totalSecs)}</div>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function renderCurrentBlock() {
+  if (!session) return;
+  const b = session.blocks[session.currentIdx];
+  if (!b) { showDone(); return; }
+
+  const card = document.getElementById('current-card');
+  const lbl = document.getElementById('block-label');
+  const name = document.getElementById('block-name');
+  const clock = document.getElementById('clock');
+  const fill = document.getElementById('bar-fill');
+  const btnStart = document.getElementById('btn-startp');
+
+  const isBreak = b.type === 'break';
+  card.className = 'current-card' + (isBreak ? ' is-break' : '');
+  lbl.className = 'block-label ' + (isBreak ? 'break-lbl' : 'subject-lbl');
+  lbl.textContent = isBreak ? '☕ BREAK' : '📖 SUBJECT';
+  name.textContent = b.name;
+
+  const remaining = b.totalSecs - b.elapsed;
+  clock.textContent = fmtTime(remaining);
+  clock.className = 'clock ' + (isBreak ? 'break-clock' : remaining <= 60 ? 'warning-clock' : 'subject-clock');
+
+  const pct = (b.elapsed / b.totalSecs) * 100;
+  fill.style.width = pct + '%';
+  fill.className = 'progress-bar-fill ' + (isBreak ? 'break-fill' : 'subject-fill');
+
+  btnStart.textContent = session.paused ? '▶  Start' : '⏸  Pause';
+  btnStart.className = 'ctrl-btn ' + (session.paused ? 'ctrl-start' : 'ctrl-pause');
+}
+
+function adjustTime(deltaMins) {
+  if (!session || session.ended) return;
+  const b = session.blocks[session.currentIdx];
+  if (!b) return;
+
+  const deltaSecs = deltaMins * 60;
+  let newTotal = b.totalSecs + deltaSecs;
+
+  // Don't let total drop below what's already elapsed + 30s remaining,
+  // and never below 30s total.
+  const minTotal = Math.max(b.elapsed + 30, 30);
+  if (newTotal < minTotal) newTotal = minTotal;
+
+  b.totalSecs = newTotal;
+  renderCurrentBlock();
+  renderProgressTrack();
+  renderQueue();
+}
+
+function fmtTime(secs) {
+  const m = Math.floor(secs / 60).toString().padStart(2, '0');
+  const s = (secs % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+function fmtMins(secs) {
+  if (secs < 60) return secs + 's';
+  return Math.round(secs/60) + 'm';
+}
+
+// ══════════════════════════════════════
+//  TIMER TICK
+// ══════════════════════════════════════
+function togglePause() {
+  if (!session) return;
+  if (session.ended) return;
+  session.paused = !session.paused;
+  if (!session.started) session.started = true;
+
+  if (!session.paused) {
+    session.blocks[session.currentIdx].status = 'active';
+    timerInterval = setInterval(tick, 1000);
+  } else {
+    clearInterval(timerInterval);
+  }
+  renderCurrentBlock();
+}
+
+function tick() {
+  if (!session || session.paused || session.ended) return;
+  const b = session.blocks[session.currentIdx];
+  b.elapsed++;
+  if (b.elapsed >= b.totalSecs) {
+    b.elapsed = b.totalSecs;
+    b.status = 'done';
+    clearInterval(timerInterval);
+    if (b.type === 'break') {
+      // Require the student to tap Start before the next subject begins
+      session.paused = true;
+      alarmSound();
+    } else {
+      beep();
+    }
+    advanceBlock();
+  }
+  renderCurrentBlock();
+  renderProgressTrack();
+  renderQueue();
+}
+
+function beep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+    osc.start(); osc.stop(ctx.currentTime + 0.8);
+  } catch {}
+}
+
+// Longer, alarm-style sound played when a break ends. Repeats several
+// times so it's harder to miss than the regular subject-end beep.
+function alarmSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    let t = ctx.currentTime;
+    for (let i = 0; i < 6; i++) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = i % 2 === 0 ? 880 : 660;
+      gain.gain.setValueAtTime(0.35, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+      osc.start(t); osc.stop(t + 0.55);
+      t += 0.65;
+    }
+  } catch {}
+}
+
+function advanceBlock() {
+  session.currentIdx++;
+  if (session.currentIdx >= session.blocks.length) {
+    showDone();
+    return;
+  }
+  // auto-start next block
+  if (!session.paused) {
+    timerInterval = setInterval(tick, 1000);
+  }
+  renderCurrentBlock();
+  renderProgressTrack();
+  renderQueue();
+}
+
+function skipBlock() {
+  if (!session || session.ended) return;
+  clearInterval(timerInterval);
+  session.blocks[session.currentIdx].status = 'skipped';
+  session.currentIdx++;
+  if (session.currentIdx >= session.blocks.length) {
+    showDone();
+    return;
+  }
+  if (!session.paused) {
+    timerInterval = setInterval(tick, 1000);
+  }
+  renderCurrentBlock();
+  renderProgressTrack();
+  renderQueue();
+}
+
+function showDone() {
+  session.ended = true;
+  clearInterval(timerInterval);
+  saveSession();
+  document.getElementById('done-banner').classList.add('show');
+  document.getElementById('timer-active').style.display = 'none';
+
+  const studied = session.blocks
+    .filter(b => b.type==='subject' && b.status==='done')
+    .reduce((a,b) => a + b.elapsed, 0);
+  document.getElementById('done-summary').textContent =
+    `You studied for ${Math.round(studied/60)} minutes across ${session.blocks.filter(b=>b.type==='subject'&&b.status==='done').length} subjects.`;
+}
+
+function saveSession() {
+  state.sessions.unshift({
+    id: session.id,
+    date: session.date,
+    blocks: session.blocks.map(b => ({
+      type: b.type, name: b.name,
+      totalSecs: b.totalSecs, elapsed: b.elapsed, status: b.status
+    }))
+  });
+  save(state);
+}
+
+// ══════════════════════════════════════
+//  STOP MODAL
+// ══════════════════════════════════════
+function confirmStop() { document.getElementById('stop-modal').classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function stopSession() {
+  closeModal('stop-modal');
+  session.blocks[session.currentIdx].status = 'skipped';
+  showDone();
+}
+
+// ══════════════════════════════════════
+//  REPORT
+// ══════════════════════════════════════
+function renderReport() {
+  const sessions = state.sessions;
+
+  // Summary stats
+  const totalSessions = sessions.length;
+  const totalMins = sessions.reduce((acc, s) =>
+    acc + s.blocks.filter(b=>b.type==='subject').reduce((a,b)=>a+b.elapsed,0), 0) / 60;
+  const avgMins = totalSessions > 0 ? totalMins / totalSessions : 0;
+  const subjectCounts = {};
+  sessions.forEach(s => s.blocks.filter(b=>b.type==='subject'&&b.elapsed>0).forEach(b => {
+    subjectCounts[b.name] = (subjectCounts[b.name]||0) + 1;
+  }));
+  const topSubject = Object.entries(subjectCounts).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
+
+  document.getElementById('summary-stats').innerHTML = `
+    <div class="stat-card"><div class="val">${totalSessions}</div><div class="lbl">Total Sessions</div></div>
+    <div class="stat-card"><div class="val">${Math.round(totalMins)}</div><div class="lbl">Total Minutes</div></div>
+    <div class="stat-card"><div class="val">${Math.round(avgMins)}</div><div class="lbl">Avg Mins/Session</div></div>
+    <div class="stat-card"><div class="val" style="font-size:16px;padding-top:4px">${topSubject}</div><div class="lbl">Most Studied</div></div>
+  `;
+
+  // Heatmap (last 28 days)
+  renderHeatmap(sessions);
+
+  // Session cards
+  const cards = document.getElementById('session-cards');
+  if (sessions.length === 0) {
+    cards.innerHTML = `<div class="empty-state"><div class="icon">📚</div><p>No sessions yet. Start studying!</p></div>`;
+    return;
+  }
+  cards.innerHTML = '';
+  sessions.forEach((s, si) => {
+    const date = new Date(s.date);
+    const studiedBlocks = s.blocks.filter(b=>b.type==='subject'&&b.elapsed>0);
+    const totalStudied = studiedBlocks.reduce((a,b)=>a+b.elapsed,0);
+    const totalMinsS = Math.round(totalStudied/60);
+
+    const card = document.createElement('div');
+    card.className = 'session-card';
+
+    const maxElapsed = Math.max(...studiedBlocks.map(b=>b.elapsed), 1);
+
+    card.innerHTML = `
+      <div class="session-card-header" onclick="toggleSessionDetail(${si})">
+        <div class="session-card-date">${date.toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric',year:'numeric'})}</div>
+        <div class="session-card-summary">
+          <span>⏱ ${totalMinsS}m studied</span>
+          <span>📖 ${studiedBlocks.length} subjects</span>
+        </div>
+      </div>
+      <div class="session-detail" id="detail-${si}">
+        ${studiedBlocks.map(b => `
+          <div class="subject-bar-wrap">
+            <div class="subject-bar-label">
+              <span class="sname">${b.name}${b.status==='skipped'?' ⚡':''}</span>
+              <span class="stime">${Math.round(b.elapsed/60)}m / ${Math.round(b.totalSecs/60)}m</span>
+            </div>
+            <div class="subject-bar-bg">
+              <div class="subject-bar-fill" style="width:${(b.elapsed/b.totalSecs*100).toFixed(1)}%"></div>
+            </div>
+          </div>
+        `).join('')}
+        <div style="margin-top:12px;font-size:12px;color:var(--muted)">
+          Started: ${date.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}
+        </div>
+      </div>
+    `;
+    cards.appendChild(card);
+  });
+}
+
+function toggleSessionDetail(i) {
+  const el = document.getElementById('detail-'+i);
+  el.classList.toggle('open');
+}
+
+function renderHeatmap(sessions) {
+  const hm = document.getElementById('heatmap');
+  hm.innerHTML = '';
+
+  // Build a map date→mins
+  const dateMap = {};
+  sessions.forEach(s => {
+    const d = new Date(s.date).toDateString();
+    const m = s.blocks.filter(b=>b.type==='subject').reduce((a,b)=>a+b.elapsed,0)/60;
+    dateMap[d] = (dateMap[d]||0) + m;
+  });
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const maxMins = Math.max(...Object.values(dateMap), 1);
+
+  for (let i = 27; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const key = d.toDateString();
+    const mins = dateMap[key] || 0;
+    const opacity = mins > 0 ? 0.2 + (mins/maxMins)*0.8 : 0;
+    const cell = document.createElement('div');
+    cell.className = 'hm-cell';
+    cell.title = `${d.toLocaleDateString(undefined,{month:'short',day:'numeric'})}: ${Math.round(mins)}m`;
+    if (mins > 0) {
+      cell.style.background = `rgba(108,99,255,${opacity.toFixed(2)})`;
+    }
+    hm.appendChild(cell);
+  }
+}
+
+// ══════════════════════════════════════
+//  EXPORT CSV
+// ══════════════════════════════════════
+function exportCSV() {
+  const rows = [['Date','Subject','Planned (mins)','Studied (mins)','Status']];
+  state.sessions.forEach(s => {
+    const d = new Date(s.date).toLocaleDateString();
+    s.blocks.filter(b=>b.type==='subject').forEach(b => {
+      rows.push([d, b.name, Math.round(b.totalSecs/60), Math.round(b.elapsed/60), b.status]);
+    });
+  });
+  const csv = rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'study_sessions.csv';
+  a.click();
+}
+
+// ══════════════════════════════════════
+//  CLEAR
+// ══════════════════════════════════════
+function confirmClear() { document.getElementById('clear-modal').classList.add('show'); }
+function clearAll() {
+  state.sessions = [];
+  save(state);
+  closeModal('clear-modal');
+  renderReport();
+}
+
+// ══════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════
+renderSetup();
+</script>
+</body>
+</html>
